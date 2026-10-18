@@ -1,4 +1,4 @@
-"""Run: python3 -m unittest discover -s tests -v"""
+"""Run: python3 -m unittest test_api -v"""
 import importlib.util
 import json
 import os
@@ -10,7 +10,7 @@ from pathlib import Path
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parent
 spec = importlib.util.spec_from_file_location('baddel_server', ROOT / 'server.py')
 server = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(server)
