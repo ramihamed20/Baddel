@@ -19,7 +19,8 @@
 المتطلبات: **Python 3.10 أو أحدث** فقط، بدون تثبيت مكتبات:
 
 ```bash
-cd baddel
+git clone https://github.com/ramihamed20/Baddel.git
+cd Baddel
 python3 server.py
 ```
 
@@ -72,4 +73,10 @@ docker compose up -d --build
 
 ## الملفات
 
-`server.py` — الخادم وواجهة API وSQLite، `public/` — واجهة HTML/CSS/JS، `compose.yaml` و`Dockerfile` — للتشغيل، `data/` — قاعدة البيانات في التشغيل المحلي (مستبعدة من حزمة التسليم)؛ Docker يحفظها في Volume دائم باسم `baddel-data`.
+`server.py` — الخادم وواجهة API وSQLite، `index.html` و`styles.css` و`app.js` و`favicon.svg` — ملفات الواجهة في جذر المستودع، `test_api.py` — الاختبارات، `compose.yaml` و`Dockerfile` — للتشغيل، `data/` — قاعدة البيانات محليًا (يجب عدم رفعها)، وDocker يحفظها في Volume دائم باسم `baddel-data`.
+
+## الاختبارات
+
+```bash
+python3 -m unittest test_api -v
+```
