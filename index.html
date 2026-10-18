@@ -8,6 +8,7 @@
   <title>بدّل | تبديل مجموعات الطلبة</title>
   <link rel="icon" type="image/svg+xml" href="./favicon.svg">
   <link rel="stylesheet" href="./styles.css">
+  <script src="./config.js" defer></script>
   <script src="./app.js" defer></script>
 </head>
 <body>
@@ -19,7 +20,7 @@
       </a>
       <nav class="main-nav" aria-label="القائمة الرئيسية">
         <button class="nav-link active" id="nav-all" type="button">الطلبات</button>
-        <button class="nav-link" id="nav-mine" type="button">إدارة طلباتي ↗</button>
+        <button class="nav-link" id="nav-mine" type="button">طلباتي</button>
       </nav>
       <button class="btn btn-dark header-add" id="header-create" type="button"><span class="plus">+</span> أضف طلبك</button>
     </div>
@@ -33,7 +34,7 @@
         <div class="hero-content">
           <div class="hero-eyebrow"><span class="live-dot"></span> مساحة للطلبة • شعبتي A و B</div>
           <h1 id="hero-title">قروبك مش مناسبك؟<br><span>خلّينا نبدّلوه.</span></h1>
-          <p>انشر طلبك وشوف مين يبي ينتقل لقروبك. لو لقيتوا بعض بالعكس، تواصلوا على تيليجرام واتفقوا على التبديل.</p><p style="margin-top:10px;font-size:.9rem">الموقع على GitHub بالكامل. عرض الطلبات بدون حساب، ونشر الطلب يحتاج تسجيل الدخول إلى GitHub مرة واحدة.</p>
+          <p>انشر طلبك وشوف مين يبي ينتقل لقروبك. لو لقيتوا بعض بالعكس، تواصلوا على تيليجرام واتفقوا على التبديل.</p><p style="margin-top:10px;font-size:.9rem">بدون تسجيل حساب. اختار شعبة وقروب وخلّي باقي الطلبة يلقوك بسهولة.</p>
           <div class="hero-actions">
             <button type="button" id="hero-create" class="btn btn-accent">انشر طلب تبديل <span aria-hidden="true">↗</span></button>
             <a href="#requests" class="btn btn-outline-light">تصفّح الطلبات <span aria-hidden="true">↓</span></a>
@@ -88,11 +89,11 @@
     <div class="modal-heading"><div><span class="section-eyebrow">طلب جديد</span><h2>انشر طلب تبديل</h2><p>اختار وين أنت توا، ووين تبي تمشي.</p></div><button type="button" class="icon-close" data-close="create-dialog" aria-label="إغلاق">×</button></div>
     <form id="create-form" class="create-form" autocomplete="off">
       <div class="modal-sections"><div class="modal-pair"><div class="modal-subhead"><span class="step-bubble">01</span><strong>من وين تبي تنتقل؟</strong></div><label class="field"><span>شعبتك الحالية</span><select id="create-current-section" required><option value="" selected disabled>اختر الشعبة</option><option>A</option><option>B</option></select></label><label class="field"><span>قروبك الحالي</span><select id="create-current-group" required><option value="" selected disabled>اختر القروب</option></select></label></div><div class="modal-pair"><div class="modal-subhead"><span class="step-bubble purple">02</span><strong>وين تبي تنتقل؟</strong></div><label class="field"><span>الشعبة المطلوبة</span><select id="create-target-section" required><option value="" selected disabled>اختر الشعبة</option><option>A</option><option>B</option></select></label><label class="field"><span>القروب المطلوب</span><select id="create-target-group" required><option value="" selected disabled>اختر القروب</option></select></label></div></div>
-      <div class="telegram-field"><label for="create-telegram" class="telegram-label">يوزرك على تيليجرام</label><div class="username-input"><span>@</span><input id="create-telegram" name="telegram" type="text" inputmode="text" dir="ltr" placeholder="your_username" minlength="5" maxlength="33" spellcheck="false" required></div><p>باش يتواصلوا معاك الطلبة اللي يناسبهم طلبك. اليوزر وطلبك بيظهروا للعامة على الموقع وGitHub.</p></div>
-      <label class="consent"><input type="checkbox" id="create-consent" required><span>أوافق على نشر يوزري وطلب التبديل بشكل عام على GitHub والموقع.</span></label>
+      <div class="telegram-field"><label for="create-telegram" class="telegram-label">يوزرك على تيليجرام</label><div class="username-input"><span>@</span><input id="create-telegram" name="telegram" type="text" inputmode="text" dir="ltr" placeholder="your_username" minlength="5" maxlength="33" spellcheck="false" required></div><p>باش يتواصلوا معاك الطلبة اللي يناسبهم طلبك. اليوزر بيظهر للعامة داخل الموقع.</p></div>
+      <label class="consent"><input type="checkbox" id="create-consent" required><span>أوافق على ظهور يوزر تيليجرام وطلب التبديل للعامة داخل الموقع.</span></label>
       <p class="form-error" id="create-error" role="alert" hidden></p>
-      <button class="btn btn-accent submit-create" id="create-submit" type="submit">اكمل نشر الطلب على GitHub <span aria-hidden="true">←</span></button>
-      <p class="expiry-note">بعد الضغط تنتقل إلى GitHub للمراجعة والضغط على Submit new issue (يتطلب حساب GitHub). يخفي الموقع الطلب بعد 30 يومًا؛ ويمكنك إغلاقه من GitHub لإخفائه فورًا.</p>
+      <button class="btn btn-accent submit-create" id="create-submit" type="submit">انشر طلب التبديل <span aria-hidden="true">←</span></button>
+      <p class="expiry-note">يُنشر طلبك مباشرة داخل بدّل بدون تسجيل. ينتهي الطلب تلقائيًا بعد 30 يومًا، وتقدر تحذفه من «طلباتي» على نفس المتصفح.</p>
     </form>
   </div></dialog>
 
