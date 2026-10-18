@@ -1,0 +1,75 @@
+name: Baddel API Smoke Test
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test-baddel-api:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify public requests lifecycle
+        env:
+          BADDEL_TEST_URL: https://frmtddorujgmxpfteatw.supabase.co/functions/v1/baddel-api
+        run: |
+          node <<'NODE'
+          const base = process.env.BADDEL_TEST_URL;
+          const origin = 'https://ramihamed20.github.io';
+          const req = async (action, method='GET', data, extra={}) => {
+            const url = new URL(base);
+            url.searchParams.set('action', action);
+            if(extra.id) url.searchParams.set('id', extra.id);
+            const response = await fetch(url.toString(), {
+              method,
+              headers: {'Origin': origin, ...(data ? {'Content-Type':'application/json'} : {}), ...(extra.token ? {'X-Owner-Token':extra.token}: {})},
+              body: data ? JSON.stringify(data) : undefined
+            });
+            const body = await response.json().catch(() => ({}));
+            if (response.status !== (extra.status || 200)) {
+              throw Error(action+' '+method+' HTTP '+response.status+' '+JSON.stringify(body));
+            }
+            return body;
+          };
+          const health = await req('health');
+          if (health.ok !== true) throw Error('Health check failed');
+          console.log('API health: OK');
+          const initial = await req('requests');
+          if (!Array.isArray(initial.requests)) throw Error('Requests list invalid');
+          console.log('Public requests: OK');
+          const tag = String(process.env.GITHUB_RUN_ID || Date.now());
+          const a = {
+            current_section:'A', current_group:'C1',
+            target_section:'B', target_group:'A2',
+            telegram:'baddeltest_'+tag+'a', consent:true
+          };
+          const b = {
+            current_section:'B', current_group:'A2',
+            target_section:'A', target_group:'C1',
+            telegram:'baddeltest_'+tag+'b', consent:true
+          };
+          const made=[];
+          try {
+            for (const item of [a,b]) {
+              const response=await req('requests','POST',item,{status:201});
+              if (!response.request?.id || !response.owner_token) throw Error('Post missing ID or delete token');
+              made.push(response);
+            }
+            console.log('Two reverse requests published: OK');
+            const match = await req('matches','GET',null,{id:made[0].request.id});
+            if (!match.matches?.some(r=>r.id===made[1].request.id)) throw Error('Reverse match not detected');
+            console.log('Reverse matching: OK');
+            const invalid = {...a,target_section:'A',target_group:'C1',telegram:'different_test'};
+            await req('requests','POST',invalid,{status:400});
+            console.log('Invalid group rejection: OK');
+            const unauthorized = await req('requests','DELETE',null,{id:made[0].request.id,status:403,token:'a'.repeat(64)});
+            console.log('Owner-token guard: OK');
+          } finally {
+            for (const entry of made) {
+              const removed = await req('requests','DELETE',null,{id:entry.request.id,token:entry.owner_token});
+              if (!removed.deleted) throw Error('Test cleanup failed');
+            }
+            console.log('Temporary test requests deleted: OK');
+          }
+          NODE
