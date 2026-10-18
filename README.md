@@ -16,16 +16,15 @@
 
 - **GitHub Pages**: يستضيف `index.html` و`styles.css` و`app.js` و`config.js` و`favicon.svg`.
 - **Supabase** (مشروع مستقل): قاعدة بيانات PostgreSQL ودالة Edge Function عامة تستقبل طلبات الطلبة دون تسجيل دخول. لا حاجة إلى VPS أو GitHub Issues.
-- يجب تهيئة Supabase وربطه قبل أن تعمل الطلبات للزوار. **الكود موجود ولكن الخدمة ليست متصلة حاليًا.**
+- **الواجهة مربوطة الآن بمشروع Baddel المستقل**، ونجحت اختبارات نشر الطلبات والمطابقة والحذف عبر الخدمة المنشورة.
 
-### تجهيز Supabase (لم يتم تنفيذه بعد)
+### إعداد قاعدة البيانات المنفّذ بالفعل (للمرجع والتطوير)
 
-1. إنشاء مشروع Supabase **مستقل** باسم Baddel، وليس ضمن قاعدة بيانات PlusCard أو Lockin.
-2. تنفيذ ملف `backend/schema.sql` في SQL Editor؛ يفعل RLS ويمنع الوصول المباشر للجداول عبر مفتاح عام.
-3. نشر ملف `backend/baddel-api/index.ts` كـ Edge Function باسم `baddel-api` مع `verify_jwt=false`، حتى يمكن لأي طالب نشر الطلب بدون حساب.
-4. وضع عنوان الدالة العام في `config.js`:
-   `window.BADDEL_API_URL = "https://PROJECT_REF.supabase.co/functions/v1/baddel-api";`
-5. التأكد من نشر واجهة GitHub Pages من فرع `main` وجذر `/(root)` عبر [Settings → Pages](https://github.com/ramihamed20/Baddel/settings/pages).
+1. **تم** إنشاء مشروع Supabase مستقل باسم Baddel (`frmtddorujgmxpfteatw`) دون تعديل PlusCard أو Lockin.
+2. **تم** تطبيق `backend/schema.sql` لحماية الجداول باستخدام RLS وسحب صلاحيات الوصول المباشر من `anon` و`authenticated`.
+3. **تم** نشر `backend/baddel-api/index.ts` كـ Edge Function عامة باسم `baddel-api`، مع `verify_jwt=false` ليسمح بالنشر دون حساب.
+4. **تم** ربط `config.js` بالعنوان العام للدالة، دون نشر أي مفتاح سري.
+5. **الخطوة الوحيدة التي تحتاج التأكد منها:** تفعيل GitHub Pages من فرع `main` وجذر `/(root)` عبر [Settings → Pages](https://github.com/ramihamed20/Baddel/settings/pages). هذا الإعداد لا يمكن تأكيد تفعيله من الاتصال الحالي.
 
 > **لا تضع** Supabase service_role أو secret key في `config.js` أو `app.js`؛ دالة Edge Function فقط تحصل على سر قاعدة البيانات عبر إعدادات الخادم.
 
