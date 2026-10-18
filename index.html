@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#f8faf9">
+  <meta name="description" content="بدّل — منصة بسيطة للعثور على طالب يريد تبادل شعبته أو مجموعته الجامعية معك.">
+  <title>بدّل | تبديل مجموعات الطلبة</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="/" aria-label="بدّل - الرئيسية">
+        <span class="brand-symbol" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M4 8h16m0 0-5-5m5 5-5 5M20 16H4m0 0 5-5m-5 5 5 5" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <span class="brand-name">بدّل<span class="brand-dot">.</span></span>
+      </a>
+      <nav class="main-nav" aria-label="القائمة الرئيسية">
+        <button class="nav-link active" id="nav-all" type="button">الطلبات</button>
+        <button class="nav-link" id="nav-mine" type="button">طلباتي <span class="mine-pill" id="mine-count" hidden>0</span></button>
+      </nav>
+      <button class="btn btn-dark header-add" id="header-create" type="button"><span class="plus">+</span> أضف طلبك</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="container">
+      <section class="hero" aria-labelledby="hero-title">
+        <div class="hero-ornament circle-1" aria-hidden="true"></div>
+        <div class="hero-ornament circle-2" aria-hidden="true"></div>
+        <div class="hero-content">
+          <div class="hero-eyebrow"><span class="live-dot"></span> مساحة للطلبة • شعبتي A و B</div>
+          <h1 id="hero-title">قروبك مش مناسبك؟<br><span>خلّينا نبدّلوه.</span></h1>
+          <p>انشر طلبك وشوف مين يبي ينتقل لقروبك. لو لقيتوا بعض بالعكس، تواصلوا على تيليجرام واتفقوا على التبديل.</p>
+          <div class="hero-actions">
+            <button type="button" id="hero-create" class="btn btn-accent">انشر طلب تبديل <span aria-hidden="true">↗</span></button>
+            <a href="#requests" class="btn btn-outline-light">تصفّح الطلبات <span aria-hidden="true">↓</span></a>
+          </div>
+        </div>
+        <div class="hero-visual" aria-hidden="true">
+          <div class="visual-card visual-first"><span class="mini-head">طلب تبديل</span><div class="visual-pair"><strong>A · C1</strong><span class="visual-swap">⇄</span><strong>A · A2</strong></div><span class="mini-foot"><i></i> البحث عن طالب مناسب</span></div>
+          <div class="visual-card visual-second"><span class="matched-icon">✓</span><div><strong>فيه تطابق!</strong><small>طالب يبي يبدّل بالعكس</small></div></div>
+        </div>
+      </section>
+
+      <section class="stats-strip" aria-label="إحصائيات الطلبات">
+        <div class="stat"><span class="stat-icon">↔</span><div><strong id="stat-requests">—</strong><span>طلب نشط</span></div></div>
+        <span class="stat-separator" aria-hidden="true"></span>
+        <div class="stat"><span class="stat-icon">✦</span><div><strong id="stat-matches">—</strong><span>فرصة تبادل متطابقة</span></div></div>
+        <span class="stat-separator" aria-hidden="true"></span>
+        <div class="stat muted-stat"><span class="stat-icon">◎</span><div><strong>16</strong><span>قروب في الشعبتين</span></div></div>
+      </section>
+
+      <section class="market-section" id="requests">
+        <div class="section-top">
+          <div><span class="section-eyebrow">لوحة التبديلات</span><h2 id="listing-heading">طلبات الطلبة</h2><p class="section-subtitle">دوّر على التبديل اللي يناسبك، أو انشر طلب جديد.</p></div>
+          <button class="btn btn-ghost" id="refresh" type="button"><span class="refresh-icon">⟳</span> تحديث الطلبات</button>
+        </div>
+
+        <div class="search-panel" id="search-panel">
+          <div class="panel-title"><span class="panel-title-icon" aria-hidden="true">⌕</span><strong>ابحث عن طلب تبديل</strong><span>تقدر تترك أي خانة فاضية</span><button type="button" id="mobile-filter-toggle" class="mobile-filter-toggle" aria-expanded="false" aria-controls="filter-form">فتح الفلاتر +</button></div>
+          <form id="filter-form" autocomplete="off">
+            <div class="filter-cluster"><span class="cluster-label"><span class="small-circle from-circle"></span> القروب الحالي (من)</span>
+              <div class="field-duo"><label class="field"><span>الشعبة</span><select id="filter-current-section" aria-label="شعبة القروب الحالي"><option value="">الكل</option><option>A</option><option>B</option></select></label><label class="field"><span>القروب</span><select id="filter-current-group" aria-label="القروب الحالي"><option value="">الكل</option></select></label></div>
+            </div>
+            <button class="flip-button" id="flip-filter" type="button" title="اعكس من وإلى" aria-label="اعكس القروبات في البحث">⇄</button>
+            <div class="filter-cluster"><span class="cluster-label"><span class="small-circle to-circle"></span> القروب المطلوب (إلى)</span>
+              <div class="field-duo"><label class="field"><span>الشعبة</span><select id="filter-target-section" aria-label="شعبة القروب المطلوب"><option value="">الكل</option><option>A</option><option>B</option></select></label><label class="field"><span>القروب</span><select id="filter-target-group" aria-label="القروب المطلوب"><option value="">الكل</option></select></label></div>
+            </div>
+            <div class="filter-actions"><button type="submit" class="btn btn-dark search-btn">بحث <span aria-hidden="true">←</span></button><button type="button" id="reset-filters" class="clear-btn">مسح الفلاتر</button></div>
+          </form>
+        </div>
+
+        <div class="results-header"><div><h3 id="results-title">كل الطلبات</h3><span class="result-count" id="results-count">جاري التحميل...</span></div><span class="fresh-label"><span class="fresh-dot"></span> أحدث الطلبات أولاً</span></div>
+        <div class="requests-grid" id="requests-grid" aria-live="polite"></div>
+        <div class="load-row"><button class="btn btn-ghost" id="more-btn" type="button" hidden>عرض المزيد ↓</button></div>
+      </section>
+
+      <section class="bottom-banner"><div class="banner-icon" aria-hidden="true">↔</div><div><h2>ما لقيتش التبديل المناسب؟</h2><p>انشر طلبك مجاناً، ولما يظهر طالب يبي التبديل بالعكس تقدر تتواصل معاه مباشرة.</p></div><button class="btn btn-dark" id="banner-create" type="button">انشر طلبك <span aria-hidden="true">↗</span></button></section>
+    </div>
+  </main>
+
+  <footer class="site-footer"><div class="container footer-inner"><div class="footer-brand">بدّل<span>.</span></div><span>من الطلبة، للطلبة ♡</span><small>التبديل النهائي يتم بالتنسيق بين الطلبة والجهة المسؤولة.</small></div></footer>
+
+  <dialog id="create-dialog" class="modal"><div class="modal-shell">
+    <div class="modal-heading"><div><span class="section-eyebrow">طلب جديد</span><h2>انشر طلب تبديل</h2><p>اختار وين أنت توا، ووين تبي تمشي.</p></div><button type="button" class="icon-close" data-close="create-dialog" aria-label="إغلاق">×</button></div>
+    <form id="create-form" class="create-form" autocomplete="off">
+      <div class="modal-sections"><div class="modal-pair"><div class="modal-subhead"><span class="step-bubble">01</span><strong>من وين تبي تنتقل؟</strong></div><label class="field"><span>شعبتك الحالية</span><select id="create-current-section" required><option value="" selected disabled>اختر الشعبة</option><option>A</option><option>B</option></select></label><label class="field"><span>قروبك الحالي</span><select id="create-current-group" required><option value="" selected disabled>اختر القروب</option></select></label></div><div class="modal-pair"><div class="modal-subhead"><span class="step-bubble purple">02</span><strong>وين تبي تنتقل؟</strong></div><label class="field"><span>الشعبة المطلوبة</span><select id="create-target-section" required><option value="" selected disabled>اختر الشعبة</option><option>A</option><option>B</option></select></label><label class="field"><span>القروب المطلوب</span><select id="create-target-group" required><option value="" selected disabled>اختر القروب</option></select></label></div></div>
+      <div class="telegram-field"><label for="create-telegram" class="telegram-label">يوزرك على تيليجرام</label><div class="username-input"><span>@</span><input id="create-telegram" name="telegram" type="text" inputmode="text" dir="ltr" placeholder="your_username" minlength="5" maxlength="33" spellcheck="false" required></div><p>باش يتواصلوا معاك الطلبة اللي يناسبهم طلبك. اليوزر يكون ظاهر للكل.</p></div>
+      <label class="consent"><input type="checkbox" id="create-consent" required><span>نوافق على ظهور يوزري على الموقع لغرض التواصل حول التبديل.</span></label>
+      <p class="form-error" id="create-error" role="alert" hidden></p>
+      <button class="btn btn-accent submit-create" id="create-submit" type="submit">انشر الطلب وابحث عن تطابق <span aria-hidden="true">←</span></button>
+      <p class="expiry-note">الطلب يختفي تلقائياً بعد 30 يوم، وتقدر تحذفه من «طلباتي».</p>
+    </form>
+  </div></dialog>
+
+  <dialog id="match-dialog" class="modal"><div class="modal-shell results-modal"><div class="modal-heading"><div><span class="section-eyebrow">نتيجة البحث التلقائي</span><h2 id="match-heading">تم نشر طلبك!</h2><p id="match-description">طلبك صار ظاهر للطلبة.</p></div><button class="icon-close" type="button" data-close="match-dialog" aria-label="إغلاق">×</button></div><div id="match-list"></div><button type="button" id="match-done" class="btn btn-dark modal-done">تمام، شوف الطلبات</button></div></dialog>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
