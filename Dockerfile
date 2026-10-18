@@ -7,7 +7,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /app
 RUN addgroup --system baddel && adduser --system --ingroup baddel baddel
 COPY --chown=baddel:baddel server.py ./server.py
-COPY --chown=baddel:baddel public/ ./public/
+COPY --chown=baddel:baddel index.html styles.css app.js favicon.svg ./
 RUN mkdir -p /app/data && chown -R baddel:baddel /app/data
 USER baddel
 EXPOSE 8787
