@@ -16,7 +16,7 @@ from pathlib import Path
 from urllib.parse import parse_qs, unquote, urlparse
 
 BASE = Path(__file__).resolve().parent
-PUBLIC = BASE / 'public'
+PUBLIC = BASE  # Static files were uploaded to the repository root
 DATA = Path(os.environ.get('DATA_DIR', str(BASE / 'data')))
 DATA.mkdir(parents=True, exist_ok=True)
 DB = DATA / 'baddel.sqlite3'
