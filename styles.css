@@ -24,3 +24,25 @@
  .search-panel:not(.expanded) form{display:none}
  .search-panel.expanded .panel-title{margin-bottom:18px}
 }
+
+
+/* Academic year selector — clean and responsive across phone and tablet. */
+.academic-year-bar{display:flex;justify-content:space-between;align-items:center;gap:18px;flex-wrap:wrap;background:#fff;border:1px solid #e5ece9;padding:15px 20px;border-radius:17px;margin:17px 0 15px}
+.academic-year-heading{display:flex;align-items:center;gap:11px}
+.academic-year-heading strong{display:block;font-size:14px;color:#193a43;font-weight:900}
+.academic-year-heading small{display:block;font-size:11px;color:#7d8f95}
+.year-icon{display:grid;place-items:center;width:38px;height:38px;background:#eaf8f4;border-radius:11px;color:#149d8d;font-size:22px}
+.year-tabs{display:flex;align-items:center;gap:5px;padding:5px;background:#f2f6f5;border:1px solid #e4ece9;border-radius:13px}
+.year-tab{border:0;border-radius:9px;padding:9px 17px;background:transparent;color:#6b7c84;font-weight:800;font-size:12px;min-height:39px;white-space:nowrap;transition:background .15s,color .15s}
+.year-tab:hover{background:#e4f0ed}
+.year-tab.active,.year-tab[aria-pressed="true"]{background:#123d45;color:white;box-shadow:0 3px 10px #123d4520}
+.academic-year-create{display:block;max-width:100%;margin:0 0 10px}
+.academic-year-create>span{display:block;font-size:12px;font-weight:800;margin-bottom:5px}
+.academic-year-create select{width:100%;height:45px;background:#f8fbf9;border:1px solid #dfe9e5;border-radius:10px;padding:0 13px;color:#153c43;font-weight:800}
+.year-groups-hint{font-size:11px;color:#738990;margin:0 0 15px;line-height:1.8}
+@media(max-width:690px){
+ .academic-year-bar{padding:13px 14px;gap:12px;margin-top:14px}
+ .academic-year-heading{width:100%}
+ .year-tabs{width:100%;display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
+ .year-tab{padding:9px 4px;font-size:11px;width:100%}
+}
