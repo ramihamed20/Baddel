@@ -17,12 +17,16 @@ const origins = new Set([
   "http://127.0.0.1:8000",
   ...(Deno.env.get("BADDEL_ALLOWED_ORIGINS") || "").split(",").map(s => s.trim()).filter(Boolean),
 ]);
-const validGroups = new Set(["A1","A2","B1","B2","C1","C2","D1","D2"]);
+const groupSets: Record<number, Set<string>> = {
+  1: new Set(["A","B","C","D"]),
+  2: new Set(["A1","A2","B1","B2","C1","C2","D1","D2"]),
+  3: new Set(["A1","A2","B1","B2","C1","C2","D1","D2","E1","E2"]),
+};
 const validSections = new Set(["A","B"]);
 const userRE = /^[A-Za-z0-9_]{5,32}$/;
 const uuidRE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const tokenRE = /^[a-f0-9]{64}$/i;
-const columns = "id,current_section,current_group,target_section,target_group,telegram,created_at,expires_at";
+const columns = "id,academic_year,current_section,current_group,target_section,target_group,telegram,created_at,expires_at";
 
 function cors(origin: string | null): Record<string,string> {
   return {
@@ -54,11 +58,15 @@ function token(): string {
     n => n.toString(16).padStart(2,"0")).join("");
 }
 function validPair(x: Record<string,unknown>): boolean {
-  return validSections.has(x.current_section as string) &&
-    validSections.has(x.target_section as string) &&
-    validGroups.has(x.current_group as string) &&
-    validGroups.has(x.target_group as string) &&
-    (x.current_section !== x.target_section || x.current_group !== x.target_group);
+  // Omitted year is supported for previously cached year-two clients.
+  const year = x.academic_year === undefined ? 2 : x.academic_year;
+  if (typeof year !== "number" || !Number.isInteger(year) || !groupSets[year]) return false;
+  if (!validSections.has(x.current_section as string) ||
+      !validSections.has(x.target_section as string)) return false;
+  if (year === 3 && (x.current_section !== "A" || x.target_section !== "A")) return false;
+  if (!groupSets[year].has(x.current_group as string) ||
+      !groupSets[year].has(x.target_group as string)) return false;
+  return x.current_section !== x.target_section || x.current_group !== x.target_group;
 }
 function clientIp(req: Request): string {
   // Supabase proxy-provided IP when available. Never store an IP in plaintext.
@@ -88,9 +96,14 @@ Deno.serve(async (req: Request): Promise<Response> => {
       const limit = Math.min(100, Math.max(1, Number(query.get("limit") || 100) || 100));
       const offset = Math.min(20000, Math.max(0, Number(query.get("offset") || 0) || 0));
       const now = new Date().toISOString();
-      const result = await db.from("baddel_requests").select(columns, { count: "exact" })
-        .gt("expires_at", now)
-        .order("created_at", { ascending: false })
+      const yearParam = query.get("year");
+      if (yearParam !== null && !["1","2","3"].includes(yearParam)) {
+        return json(400, { error: "السنة الدراسية غير صحيحة" }, origin);
+      }
+      let listing = db.from("baddel_requests").select(columns, { count: "exact" })
+        .gt("expires_at", now);
+      if (yearParam) listing = listing.eq("academic_year", Number(yearParam));
+      const result = await listing.order("created_at", { ascending: false })
         .range(Math.floor(offset), Math.floor(offset) + Math.floor(limit) - 1);
       if (result.error) throw result.error;
       return json(200, {
@@ -108,6 +121,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       if (requestError) throw requestError;
       if (!request) return json(404, { error: "هذا الطلب غير موجود" }, origin);
       const { data, error } = await db.from("baddel_requests").select(columns)
+        .eq("academic_year", request.academic_year)
         .eq("current_section", request.target_section)
         .eq("current_group", request.target_group)
         .eq("target_section", request.current_section)
@@ -164,6 +178,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
       const ownerToken = token();
       const payload = {
+        academic_year: body.academic_year === undefined ? 2 : body.academic_year,
         current_section: body.current_section,
         current_group: body.current_group,
         target_section: body.target_section,
