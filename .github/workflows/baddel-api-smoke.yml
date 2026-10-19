@@ -1,75 +1,120 @@
-name: Baddel API Smoke Test
+name: Baddel Years & API Smoke Test
 on:
   push:
     branches: [main]
+    paths:
+      - ".github/workflows/baddel-api-smoke.yml"
   workflow_dispatch:
 permissions:
   contents: read
 jobs:
   test-baddel-api:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 7
     steps:
-      - name: Verify public requests lifecycle
+      - uses: actions/checkout@v4
+      - name: Check JavaScript and year controls
+        run: |
+          node --check app.js
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const html = fs.readFileSync('index.html','utf8');
+          const js = fs.readFileSync('app.js','utf8');
+          for (const year of [1,2,3]) {
+            if (!html.includes('data-year="' + year + '"')) throw Error('Missing year tab: ' + year);
+            if (!js.includes(year + ': [')) throw Error('Missing year group choices: ' + year);
+          }
+          if (!html.includes('id="create-year"')) throw Error('No year chooser in create form');
+          if (!html.includes('./config.js')) throw Error('No backend configuration script');
+          console.log('Static site checks passed');
+          NODE
+      - name: Verify API for all three academic years
         env:
           BADDEL_TEST_URL: https://frmtddorujgmxpfteatw.supabase.co/functions/v1/baddel-api
         run: |
           node <<'NODE'
           const base = process.env.BADDEL_TEST_URL;
           const origin = 'https://ramihamed20.github.io';
-          const req = async (action, method='GET', data, extra={}) => {
+          const request = async (action, method='GET', data=null, opts={}) => {
             const url = new URL(base);
             url.searchParams.set('action', action);
-            if(extra.id) url.searchParams.set('id', extra.id);
+            if (opts.id) url.searchParams.set('id', opts.id);
+            if (opts.year !== undefined) url.searchParams.set('year', String(opts.year));
             const response = await fetch(url.toString(), {
               method,
-              headers: {'Origin': origin, ...(data ? {'Content-Type':'application/json'} : {}), ...(extra.token ? {'X-Owner-Token':extra.token}: {})},
-              body: data ? JSON.stringify(data) : undefined
+              headers: {
+                'Origin': origin,
+                ...(data ? {'Content-Type':'application/json'} : {}),
+                ...(opts.token ? {'X-Owner-Token':opts.token} : {}),
+              },
+              body: data ? JSON.stringify(data) : undefined,
             });
-            const body = await response.json().catch(() => ({}));
-            if (response.status !== (extra.status || 200)) {
-              throw Error(action+' '+method+' HTTP '+response.status+' '+JSON.stringify(body));
+            const result = await response.json().catch(() => ({}));
+            const expected = opts.status ?? 200;
+            if (response.status !== expected) {
+              throw Error(method + ' ' + action + ' HTTP ' + response.status +
+                ' (expected '+expected+'): '+JSON.stringify(result));
             }
-            return body;
+            return result;
           };
-          const health = await req('health');
-          if (health.ok !== true) throw Error('Health check failed');
-          console.log('API health: OK');
-          const initial = await req('requests');
-          if (!Array.isArray(initial.requests)) throw Error('Requests list invalid');
-          console.log('Public requests: OK');
+          const health = await request('health');
+          if (health.ok !== true) throw Error('Health endpoint failed');
+          for (const year of [1,2,3]) {
+            const listing = await request('requests', 'GET', null, {year});
+            if (!Array.isArray(listing.requests)) throw Error('Year listing must be an array');
+            if (listing.requests.some(item => item.academic_year !== year)) {
+              throw Error('Year ' + year + ' listing mixed academic years');
+            }
+          }
+          await request('requests','GET',null,{year:4,status:400});
+          console.log('Health, year-aware listings, invalid year: OK');
+
           const tag = String(process.env.GITHUB_RUN_ID || Date.now());
-          const a = {
-            current_section:'A', current_group:'C1',
-            target_section:'B', target_group:'A2',
-            telegram:'baddeltest_'+tag+'a', consent:true
-          };
-          const b = {
-            current_section:'B', current_group:'A2',
-            target_section:'A', target_group:'C1',
-            telegram:'baddeltest_'+tag+'b', consent:true
-          };
+          const reqs = [
+            { academic_year:1, current_section:'A',current_group:'A',
+              target_section:'B',target_group:'D',telegram:'baddeltest_'+tag+'a',consent:true },
+            { academic_year:1, current_section:'B',current_group:'D',
+              target_section:'A',target_group:'A',telegram:'baddeltest_'+tag+'b',consent:true },
+            { academic_year:3, current_section:'A',current_group:'A1',
+              target_section:'A',target_group:'A2',telegram:'baddeltest_'+tag+'c',consent:true },
+            { academic_year:3, current_section:'A',current_group:'A2',
+              target_section:'A',target_group:'A1',telegram:'baddeltest_'+tag+'d',consent:true },
+            { academic_year:2, current_section:'A',current_group:'A2',
+              target_section:'A',target_group:'A1',telegram:'baddeltest_'+tag+'e',consent:true },
+          ];
           const made=[];
           try {
-            for (const item of [a,b]) {
-              const response=await req('requests','POST',item,{status:201});
-              if (!response.request?.id || !response.owner_token) throw Error('Post missing ID or delete token');
-              made.push(response);
+            for (const item of reqs) {
+              const result=await request('requests','POST',item,{status:201});
+              if (!result.request?.id || !result.owner_token ||
+                  result.request.academic_year !== item.academic_year) {
+                throw Error('Missing response data or wrong academic year');
+              }
+              made.push(result);
             }
-            console.log('Two reverse requests published: OK');
-            const match = await req('matches','GET',null,{id:made[0].request.id});
-            if (!match.matches?.some(r=>r.id===made[1].request.id)) throw Error('Reverse match not detected');
-            console.log('Reverse matching: OK');
-            const invalid = {...a,target_section:'A',target_group:'C1',telegram:'different_test'};
-            await req('requests','POST',invalid,{status:400});
-            console.log('Invalid group rejection: OK');
-            const unauthorized = await req('requests','DELETE',null,{id:made[0].request.id,status:403,token:'a'.repeat(64)});
-            console.log('Owner-token guard: OK');
+            const [first,second,third,fourth,fifth] = made.map(r=>r.request.id);
+            const pair1 = await request('matches','GET',null,{id:first});
+            if (!pair1.matches.some(r=>r.id===second)) throw Error('Year 1 reverse match missing');
+            const pair3 = await request('matches','GET',null,{id:third});
+            if (!pair3.matches.some(r=>r.id===fourth)) throw Error('Year 3 reverse match missing');
+            if (pair3.matches.some(r=>r.id===fifth)) throw Error('Cross-year match leaked');
+            const pair2 = await request('matches','GET',null,{id:fifth});
+            if (pair2.matches.some(r=>r.id===third)) throw Error('Year 2 matched third-year request');
+            console.log('Year 1 & 3 reverse matching + year isolation: OK');
+
+            await request('requests','POST',{...reqs[0],current_group:'A1',telegram:'invalid_yr1'}, {status:400});
+            await request('requests','POST',{...reqs[2],target_section:'B',telegram:'invalid_yr3'}, {status:400});
+            await request('requests','POST',{...reqs[4],target_group:'E2',telegram:'invalid_yr2'}, {status:400});
+            await request('requests','POST',{...reqs[2],academic_year:'3',telegram:'invalid_ystr'}, {status:400});
+            await request('requests','DELETE',null,{id:first,token:'a'.repeat(64),status:403});
+            console.log('Invalid groups/sections/year and deletion protection: OK');
           } finally {
-            for (const entry of made) {
-              const removed = await req('requests','DELETE',null,{id:entry.request.id,token:entry.owner_token});
-              if (!removed.deleted) throw Error('Test cleanup failed');
+            for (const item of made) {
+              const deleted = await request('requests','DELETE',null,{
+                id:item.request.id,token:item.owner_token,
+              });
+              if (!deleted.deleted) throw Error('Failed to delete a test request');
             }
-            console.log('Temporary test requests deleted: OK');
+            console.log('All temporary test requests deleted');
           }
           NODE
