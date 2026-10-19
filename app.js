@@ -4,14 +4,24 @@
   // GitHub Pages hosts only HTML/CSS/JS. Shared requests go to a separate
   // public API (Supabase Edge Function). No account or sign-in is required.
   const BACKEND = (window.BADDEL_API_URL || '').trim();
-  const GROUPS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2', 'D1', 'D2'];
+  const YEAR_GROUPS = Object.freeze({
+    1: ['A', 'B', 'C', 'D'],
+    2: ['A1', 'A2', 'B1', 'B2', 'C1', 'C2', 'D1', 'D2'],
+    3: ['A1', 'A2', 'B1', 'B2', 'C1', 'C2', 'D1', 'D2', 'E1', 'E2']
+  });
+  const YEAR_NAMES = { 1: 'سنة أولى', 2: 'سنة ثانية', 3: 'سنة ثالثة' };
+  const YEAR_HINTS = {
+    1: 'سنة أولى: شعبتا A وB، والقروبات A وB وC وD.',
+    2: 'سنة ثانية: شعبتا A وB، والقروبات من A1 إلى D2.',
+    3: 'سنة ثالثة: شعبة A فقط، والقروبات من A1 إلى E2.'
+  };
   const PARTS = ['current-section', 'current-group', 'target-section', 'target-group'];
   const USER_RE = /^[a-zA-Z0-9_]{5,32}$/;
   const PAGE_SIZE = 16;
   const MAX_FETCH = 500;
   const OWNERS_KEY = 'baddel_owner_tokens_v1';
   const $ = name => document.getElementById(name);
-  const state = { requests: [], filtered: [], shown: PAGE_SIZE, loading: false, mode: 'all' };
+  const state = { requests: [], filtered: [], shown: PAGE_SIZE, loading: false, mode: 'all', year: 2, loadVersion: 0 };
   let toastTimer;
   let ownerTokens = readOwners();
 
@@ -76,11 +86,11 @@
     }
     return body;
   }
-  async function fetchRequests() {
+  async function fetchRequests(year) {
     const result = [];
     let offset = 0;
     while (offset < MAX_FETCH) {
-      const batch = await api({ action: 'requests', limit: 100, offset });
+      const batch = await api({ action: 'requests', year, limit: 100, offset });
       if (!Array.isArray(batch.requests)) throw new Error('صيغة الطلبات غير متوقعة');
       result.push(...batch.requests);
       offset += batch.requests.length;
@@ -99,7 +109,8 @@
     $('stat-matches').textContent = pairs.toLocaleString('en-US');
   }
   function isMatch(a, b) {
-    return a.current_section === b.target_section &&
+    return Number(a.academic_year || 2) === Number(b.academic_year || 2) &&
+      a.current_section === b.target_section &&
       a.current_group === b.target_group &&
       a.target_section === b.current_section &&
       a.target_group === b.current_group &&
@@ -110,12 +121,42 @@
     for (const part of PARTS) values[part.replace('-', '_')] = $(prefix + '-' + part).value;
     return values;
   }
-  function fillGroups(name) {
-    for (const group of GROUPS) {
-      const opt = document.createElement('option');
-      opt.value = opt.textContent = group;
-      $(name).appendChild(opt);
+  function populateOptions(prefix, year, preserve = false) {
+    const sections = year === 3 ? ['A'] : ['A', 'B'];
+    const groups = YEAR_GROUPS[year];
+    const isFilter = prefix === 'filter';
+    for (const side of ['current', 'target']) {
+      const section = $(prefix + '-' + side + '-section');
+      const group = $(prefix + '-' + side + '-group');
+      const oldSection = preserve ? section.value : '';
+      const oldGroup = preserve ? group.value : '';
+      section.innerHTML = '<option value="">' + (isFilter ? 'الكل' : 'اختر الشعبة') +
+        '</option>' + sections.map(s => '<option value="' + s + '">' + s + '</option>').join('');
+      group.innerHTML = '<option value="">' + (isFilter ? 'الكل' : 'اختر القروب') +
+        '</option>' + groups.map(g => '<option value="' + g + '">' + g + '</option>').join('');
+      section.value = year === 3 ? 'A' : (sections.includes(oldSection) ? oldSection : '');
+      group.value = groups.includes(oldGroup) ? oldGroup : '';
+      section.disabled = year === 3;
     }
+  }
+  function selectYear(year, shouldReload = true) {
+    if (!YEAR_GROUPS[year]) return;
+    state.year = year;
+    state.shown = PAGE_SIZE;
+    document.querySelectorAll('.year-tab').forEach(btn => {
+      const active = Number(btn.dataset.year) === year;
+      btn.classList.toggle('active', active);
+      btn.setAttribute('aria-pressed', String(active));
+    });
+    populateOptions('filter', year);
+    $('stat-groups').textContent = year === 3 ? '10' : year === 1 ? '8' : '16';
+    $('stat-groups-label').textContent = year === 3 ? 'قروب في شعبة A' : 'قروب في الشعبتين';
+    if (shouldReload) void reload();
+  }
+  function prepareCreateYear(year, preserve = false) {
+    $('create-year').value = String(year);
+    $('create-year-hint').textContent = YEAR_HINTS[year];
+    populateOptions('create', year, preserve);
   }
   function card(r) {
     const who = html(r.telegram);
@@ -125,7 +166,7 @@
       html(r.telegram.charAt(0).toUpperCase()) + '</span><div><strong>@' + who +
       '</strong><small>' + html(when(r.created_at)) + '</small></div></div>' +
       '<span class="request-label' + (myRequest ? ' own-label' : '') + '">' +
-      (myRequest ? 'طلبك' : 'طلب تبديل') + '</span></div>' +
+      (myRequest ? 'طلبك' : 'طلب تبديل') + ' · ' + YEAR_NAMES[Number(r.academic_year || 2)] + '</span></div>' +
       '<div class="request-route"><div class="route-side"><span>من</span><strong>' +
       html(pair(r, 'current')) + '</strong></div><span class="route-swap" aria-hidden="true">↔</span>' +
       '<div class="route-side target"><span>إلى</span><strong>' +
@@ -143,9 +184,10 @@
     const selected = collect('filter');
     const showingMine = state.mode === 'mine';
     state.filtered = state.requests.filter(r =>
+      Number(r.academic_year || 2) === state.year &&
       (!showingMine || owned(r)) &&
       (showingMine || Object.entries(selected).every(([key, value]) => !value || r[key] === value)));
-    $('results-title').textContent = showingMine ? 'طلباتي' : 'كل الطلبات';
+    $('results-title').textContent = (showingMine ? 'طلباتي' : 'طلبات') + ' — ' + YEAR_NAMES[state.year];
     $('results-count').textContent = state.filtered.length + ' طلب';
     $('more-btn').hidden = state.shown >= state.filtered.length;
     const visible = state.filtered.slice(0, state.shown);
@@ -161,17 +203,23 @@
     $('requests-grid').innerHTML = visible.map(card).join('');
   }
   async function reload() {
-    if (state.loading) return;
+    // A year change invalidates in-flight reads, so old results cannot
+    // overwrite the newer selected year's list.
+    const loadVersion = ++state.loadVersion;
+    const requestedYear = state.year;
     state.loading = true;
     $('requests-grid').innerHTML = '<div class="loading-state"><span class="loading-spinner"></span> جاري تحميل الطلبات...</div>';
     $('results-count').textContent = 'جاري التحميل...';
     $('more-btn').hidden = true;
     try {
-      state.requests = await fetchRequests();
+      const fetched = await fetchRequests(requestedYear);
+      if (loadVersion !== state.loadVersion) return;
+      state.requests = fetched;
       state.shown = PAGE_SIZE;
       stats();
       render();
     } catch (error) {
+      if (loadVersion !== state.loadVersion) return;
       $('requests-grid').innerHTML =
         '<div class="empty-state"><div class="empty-symbol">!</div>' +
         '<h3>الطلبات غير متاحة حاليًا</h3><p>' + html(error.message) +
@@ -180,11 +228,12 @@
       $('stat-requests').textContent = '—';
       $('stat-matches').textContent = '—';
     } finally {
-      state.loading = false;
+      if (loadVersion === state.loadVersion) state.loading = false;
     }
   }
   function showCreate() {
     $('create-error').hidden = true;
+    prepareCreateYear(state.year);
     if (!$('create-dialog').open) $('create-dialog').showModal();
     $('create-current-section').focus();
   }
@@ -192,7 +241,8 @@
     const entry = created || state.requests.find(r => r.id === id);
     if (!entry) return toast('هذا الطلب لم يعد متاحًا. جرّب تحديث الطلبات.', true);
     $('match-heading').textContent = 'ندوروا على التبديل المناسب';
-    $('match-description').textContent = 'نبحث عن ' + pair(entry, 'target') +
+    $('match-description').textContent = 'نبحث في ' + YEAR_NAMES[Number(entry.academic_year || 2)] +
+      ' عن ' + pair(entry, 'target') +
       ' ← ' + pair(entry, 'current') + ' (بالعكس تمامًا).';
     $('match-list').innerHTML = '<div class="loading-state"><span class="loading-spinner"></span> جاري البحث...</div>';
     if (!$('match-dialog').open) $('match-dialog').showModal();
@@ -218,11 +268,18 @@
   async function submitCreate(event) {
     event.preventDefault();
     const data = collect('create');
+    data.academic_year = Number($('create-year').value);
     const user = $('create-telegram').value.trim().replace(/^@/, '');
     const error = $('create-error');
     error.hidden = true;
     let message = '';
-    if (Object.values(data).some(v => !v)) message = 'اختار الشعبة والقروب في الحالتين.';
+    if (!YEAR_GROUPS[data.academic_year]) message = 'اختار السنة الدراسية.';
+    else if (Object.values(data).some(v => !v)) message = 'اختار الشعبة والقروب في الحالتين.';
+    else if (data.academic_year === 3 && (data.current_section !== 'A' || data.target_section !== 'A'))
+      message = 'سنة ثالثة فيها شعبة A فقط.';
+    else if (!YEAR_GROUPS[data.academic_year].includes(data.current_group) ||
+             !YEAR_GROUPS[data.academic_year].includes(data.target_group))
+      message = 'القروبات المختارة غير متاحة لهذه السنة.';
     else if (data.current_section === data.target_section &&
              data.current_group === data.target_group) message = 'اختار قروب مختلف عن قروبك الحالي.';
     else if (!USER_RE.test(user)) message = 'يوزر تيليجرام لازم يكون من 5 إلى 32 حرف أو رقم أو _.';
@@ -244,6 +301,7 @@
       $('create-dialog').close();
       $('create-form').reset();
       state.mode = 'all';
+      selectYear(Number(result.request.academic_year || data.academic_year), false);
       $('nav-mine').classList.remove('active');
       $('nav-all').classList.add('active');
       toast('تم نشر طلبك بنجاح!');
@@ -284,10 +342,14 @@
     }
   }
   function boot() {
-    for (const prefix of ['filter', 'create']) {
-      fillGroups(prefix + '-current-group');
-      fillGroups(prefix + '-target-group');
-    }
+    selectYear(2, false);
+    prepareCreateYear(2);
+    $('create-year').addEventListener('change', () => {
+      prepareCreateYear(Number($('create-year').value), true);
+    });
+    document.querySelectorAll('.year-tab').forEach(button => {
+      button.addEventListener('click', () => selectYear(Number(button.dataset.year)));
+    });
     const setMode = mode => {
       state.mode = mode;
       state.shown = PAGE_SIZE;
@@ -309,7 +371,7 @@
       swapFilters(); setMode('all'); setFilters();
     });
     $('reset-filters').addEventListener('click', () => {
-      for (const part of PARTS) $('filter-' + part).value = '';
+      populateOptions('filter', state.year);
       setMode('all'); setFilters();
     });
     $('more-btn').addEventListener('click', () => { state.shown += PAGE_SIZE; render(); });
