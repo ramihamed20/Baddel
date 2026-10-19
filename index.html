@@ -32,7 +32,7 @@
         <div class="hero-ornament circle-1" aria-hidden="true"></div>
         <div class="hero-ornament circle-2" aria-hidden="true"></div>
         <div class="hero-content">
-          <div class="hero-eyebrow"><span class="live-dot"></span> مساحة للطلبة • شعبتي A و B</div>
+          <div class="hero-eyebrow"><span class="live-dot"></span> مساحة للطلبة • السنوات الأولى والثانية والثالثة</div>
           <h1 id="hero-title">قروبك مش مناسبك؟<br><span>خلّينا نبدّلوه.</span></h1>
           <p>انشر طلبك وشوف مين يبي ينتقل لقروبك. لو لقيتوا بعض بالعكس، تواصلوا على تيليجرام واتفقوا على التبديل.</p><p style="margin-top:10px;font-size:.9rem">بدون تسجيل حساب. اختار شعبة وقروب وخلّي باقي الطلبة يلقوك بسهولة.</p>
           <div class="hero-actions">
@@ -51,13 +51,26 @@
         <span class="stat-separator" aria-hidden="true"></span>
         <div class="stat"><span class="stat-icon">✦</span><div><strong id="stat-matches">—</strong><span>فرصة تبادل متطابقة</span></div></div>
         <span class="stat-separator" aria-hidden="true"></span>
-        <div class="stat muted-stat"><span class="stat-icon">◎</span><div><strong>16</strong><span>قروب في الشعبتين</span></div></div>
+        <div class="stat muted-stat"><span class="stat-icon">◎</span><div><strong id="stat-groups">16</strong><span id="stat-groups-label">قروب في الشعبتين</span></div></div>
       </section>
 
       <section class="market-section" id="requests">
         <div class="section-top">
           <div><span class="section-eyebrow">لوحة التبديلات</span><h2 id="listing-heading">طلبات الطلبة</h2><p class="section-subtitle">دوّر على التبديل اللي يناسبك، أو انشر طلب جديد.</p></div>
           <button class="btn btn-ghost" id="refresh" type="button"><span class="refresh-icon">⟳</span> تحديث الطلبات</button>
+        </div>
+
+        
+        <div class="academic-year-bar" aria-label="اختر السنة الدراسية">
+          <div class="academic-year-heading">
+            <span class="year-icon" aria-hidden="true">▦</span>
+            <div><strong>السنة الدراسية</strong><small>اعرض طلبات سنتك وابحث عن التبديل المناسب</small></div>
+          </div>
+          <div class="year-tabs" role="group" aria-label="السنة الدراسية">
+            <button type="button" class="year-tab" data-year="1" aria-pressed="false">سنة أولى</button>
+            <button type="button" class="year-tab active" data-year="2" aria-pressed="true">سنة ثانية</button>
+            <button type="button" class="year-tab" data-year="3" aria-pressed="false">سنة ثالثة</button>
+          </div>
         </div>
 
         <div class="search-panel" id="search-panel">
@@ -88,6 +101,14 @@
   <dialog id="create-dialog" class="modal"><div class="modal-shell">
     <div class="modal-heading"><div><span class="section-eyebrow">طلب جديد</span><h2>انشر طلب تبديل</h2><p>اختار وين أنت توا، ووين تبي تمشي.</p></div><button type="button" class="icon-close" data-close="create-dialog" aria-label="إغلاق">×</button></div>
     <form id="create-form" class="create-form" autocomplete="off">
+      <label class="field academic-year-create"><span>السنة الدراسية</span>
+        <select id="create-year" required>
+          <option value="1">سنة أولى</option>
+          <option value="2" selected>سنة ثانية</option>
+          <option value="3">سنة ثالثة</option>
+        </select>
+      </label>
+      <p class="year-groups-hint" id="create-year-hint">سنة ثانية: شعبتا A وB، والقروبات من A1 إلى D2.</p>
       <div class="modal-sections"><div class="modal-pair"><div class="modal-subhead"><span class="step-bubble">01</span><strong>من وين تبي تنتقل؟</strong></div><label class="field"><span>شعبتك الحالية</span><select id="create-current-section" required><option value="" selected disabled>اختر الشعبة</option><option>A</option><option>B</option></select></label><label class="field"><span>قروبك الحالي</span><select id="create-current-group" required><option value="" selected disabled>اختر القروب</option></select></label></div><div class="modal-pair"><div class="modal-subhead"><span class="step-bubble purple">02</span><strong>وين تبي تنتقل؟</strong></div><label class="field"><span>الشعبة المطلوبة</span><select id="create-target-section" required><option value="" selected disabled>اختر الشعبة</option><option>A</option><option>B</option></select></label><label class="field"><span>القروب المطلوب</span><select id="create-target-group" required><option value="" selected disabled>اختر القروب</option></select></label></div></div>
       <div class="telegram-field"><label for="create-telegram" class="telegram-label">يوزرك على تيليجرام</label><div class="username-input"><span>@</span><input id="create-telegram" name="telegram" type="text" inputmode="text" dir="ltr" placeholder="your_username" minlength="5" maxlength="33" spellcheck="false" required></div><p>باش يتواصلوا معاك الطلبة اللي يناسبهم طلبك. اليوزر بيظهر للعامة داخل الموقع.</p></div>
       <label class="consent"><input type="checkbox" id="create-consent" required><span>أوافق على ظهور يوزر تيليجرام وطلب التبديل للعامة داخل الموقع.</span></label>
